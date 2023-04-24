@@ -19,7 +19,7 @@ const CreatePostWizard = () => {
   const { mutate, isLoading: isPosting } = api.posts.create.useMutation({
     onSuccess: () => {
       setInput("");
-      ctx.posts.getAll.invalidate(); 
+      void ctx.posts.getAll.invalidate(); //we do void because it's a promise and we don't care about the result
     } 
   });
 
