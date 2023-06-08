@@ -1,6 +1,28 @@
 import { type GetStaticProps, type NextPage } from "next";
 import Head from "next/head";
 import { api } from "~/utils/api";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+
+dayjs.extend(relativeTime);
+
+
+export const ProfileFeed = (props : {userId: string}) => {
+
+  const {data, isLoading} = api.posts.getPostsByUserId.useQuery({
+    userId: props.userId
+  })
+
+  if (isLoading) return <LoadingPage />
+
+  if (!data || data.length === 0) return <div>{`User has no posts yet!`}</div>
+
+  return <div>
+    {data.map(fullPost => <PostView {...fullPost} key={fullPost.post.id}/>)}
+  </div>
+
+
+}
 
 const ProfilePage: NextPage<{ id: string }> = ({ id }) => {
   const { data } = api.profile.getUserByUserId.useQuery({
@@ -27,6 +49,7 @@ const ProfilePage: NextPage<{ id: string }> = ({ id }) => {
         <div className="h-[64px]"/>
         <div className="p-4 text-2xl font-bold">{`@${data.username ?? "user"}`}</div>
         <div className="w-full border-b border-slate-400" />
+        <ProfileFeed userId={id}/>
       </PageLayout>
     </>
   );
@@ -38,6 +61,9 @@ import { prisma } from "~/server/db";
 import SuperJSON from "superjson";
 import { PageLayout } from "~/components/layout";
 import Image from "next/image";
+import { LoadingPage } from "~/components/loading";
+import dayjs from "dayjs";
+import { PostView } from "~/components/postView";
 
 export const getStaticProps: GetStaticProps = async (context) => {
   const ssg = createServerSideHelpers({
