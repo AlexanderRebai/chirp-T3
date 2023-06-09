@@ -1,28 +1,33 @@
+import relativeTime from "dayjs/plugin/relativeTime";
 import { type GetStaticProps, type NextPage } from "next";
 import Head from "next/head";
 import { api } from "~/utils/api";
-import relativeTime from "dayjs/plugin/relativeTime";
-
+import dayjs from "dayjs";
+import Image from "next/image";
+import { PageLayout } from "~/components/layout";
+import { LoadingPage } from "~/components/loading";
+import { PostView } from "~/components/postView";
+import { generateSSGHelper } from "~/server/helpers/ssgHelper";
 
 dayjs.extend(relativeTime);
 
+export const ProfileFeed = (props: { userId: string }) => {
+  const { data, isLoading } = api.posts.getPostsByUserId.useQuery({
+    userId: props.userId,
+  });
 
-export const ProfileFeed = (props : {userId: string}) => {
+  if (isLoading) return <LoadingPage />;
 
-  const {data, isLoading} = api.posts.getPostsByUserId.useQuery({
-    userId: props.userId
-  })
+  if (!data || data.length === 0) return <div>{`User has no posts yet!`}</div>;
 
-  if (isLoading) return <LoadingPage />
-
-  if (!data || data.length === 0) return <div>{`User has no posts yet!`}</div>
-
-  return <div>
-    {data.map(fullPost => <PostView {...fullPost} key={fullPost.post.id}/>)}
-  </div>
-
-
-}
+  return (
+    <div>
+      {data.map((fullPost) => (
+        <PostView {...fullPost} key={fullPost.post.id} />
+      ))}
+    </div>
+  );
+};
 
 const ProfilePage: NextPage<{ id: string }> = ({ id }) => {
   const { data } = api.profile.getUserByUserId.useQuery({
@@ -46,31 +51,19 @@ const ProfilePage: NextPage<{ id: string }> = ({ id }) => {
             className="absolute bottom-0 left-0 -mb-[64px] ml-4 rounded-full border-4 border-black bg-black"
           />
         </div>
-        <div className="h-[64px]"/>
-        <div className="p-4 text-2xl font-bold">{`@${data.username ?? "user"}`}</div>
+        <div className="h-[64px]" />
+        <div className="p-4 text-2xl font-bold">{`@${
+          data.username ?? "user"
+        }`}</div>
         <div className="w-full border-b border-slate-400" />
-        <ProfileFeed userId={id}/>
+        <ProfileFeed userId={id} />
       </PageLayout>
     </>
   );
 };
 
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import { appRouter } from "~/server/api/root";
-import { prisma } from "~/server/db";
-import SuperJSON from "superjson";
-import { PageLayout } from "~/components/layout";
-import Image from "next/image";
-import { LoadingPage } from "~/components/loading";
-import dayjs from "dayjs";
-import { PostView } from "~/components/postView";
-
 export const getStaticProps: GetStaticProps = async (context) => {
-  const ssg = createServerSideHelpers({
-    router: appRouter,
-    ctx: { prisma, currentUserId: null },
-    transformer: SuperJSON,
-  });
+  const ssg = generateSSGHelper();
 
   const slug = context.params?.slug;
 
